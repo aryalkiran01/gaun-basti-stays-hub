@@ -1,7 +1,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { dummyListings, dummyUsers, dummyBookings } from "@/lib/dummy-data";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,10 +14,31 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format } from "date-fns";
+import { useToast } from "@/components/ui/use-toast";
+import { Booking, DialogType, Listing, User } from "@/types";
+
+// Import our new dialog components
+import UserEditDialog from "@/components/admin/UserEditDialog";
+import ListingEditDialog from "@/components/admin/ListingEditDialog";
+import BookingEditDialog from "@/components/admin/BookingEditDialog";
 
 const Admin = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  // Add state for our data and edit dialogs
+  const [users, setUsers] = useState<User[]>(dummyUsers);
+  const [listings, setListings] = useState<Listing[]>(dummyListings);
+  const [bookings, setBookings] = useState<Booking[]>(dummyBookings);
+  
+  // Selected item states
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  
+  // Dialog open states
+  const [dialogType, setDialogType] = useState<DialogType>(null);
   
   // Redirect if not admin
   useEffect(() => {
@@ -30,6 +51,55 @@ const Admin = () => {
     return null; // Prevent rendering until redirect happens
   }
   
+  // Handle open dialog for different entities
+  const handleEditUser = (userToEdit: User) => {
+    setSelectedUser(userToEdit);
+    setDialogType("user");
+  };
+  
+  const handleEditListing = (listingToEdit: Listing) => {
+    setSelectedListing(listingToEdit);
+    setDialogType("listing");
+  };
+  
+  const handleEditBooking = (bookingToEdit: Booking) => {
+    setSelectedBooking(bookingToEdit);
+    setDialogType("booking");
+  };
+
+  // Handle close dialogs
+  const handleCloseDialog = () => {
+    setDialogType(null);
+    setSelectedUser(null);
+    setSelectedListing(null);
+    setSelectedBooking(null);
+  };
+  
+  // Handle saving updated entities
+  const handleSaveUser = (updatedUser: User) => {
+    const updatedUsers = users.map(u => 
+      u.id === updatedUser.id ? updatedUser : u
+    );
+    setUsers(updatedUsers);
+    handleCloseDialog();
+  };
+  
+  const handleSaveListing = (updatedListing: Listing) => {
+    const updatedListings = listings.map(l => 
+      l.id === updatedListing.id ? updatedListing : l
+    );
+    setListings(updatedListings);
+    handleCloseDialog();
+  };
+  
+  const handleSaveBooking = (updatedBooking: Booking) => {
+    const updatedBookings = bookings.map(b => 
+      b.id === updatedBooking.id ? updatedBooking : b
+    );
+    setBookings(updatedBookings);
+    handleCloseDialog();
+  };
+  
   return (
     <div className="min-h-screen py-12">
       <div className="container">
@@ -38,15 +108,15 @@ const Admin = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg border">
             <h3 className="text-muted-foreground mb-1">Total Users</h3>
-            <p className="text-4xl font-medium">{dummyUsers.length}</p>
+            <p className="text-4xl font-medium">{users.length}</p>
           </div>
           <div className="bg-white p-6 rounded-lg border">
             <h3 className="text-muted-foreground mb-1">Total Listings</h3>
-            <p className="text-4xl font-medium">{dummyListings.length}</p>
+            <p className="text-4xl font-medium">{listings.length}</p>
           </div>
           <div className="bg-white p-6 rounded-lg border">
             <h3 className="text-muted-foreground mb-1">Active Bookings</h3>
-            <p className="text-4xl font-medium">{dummyBookings.filter(b => b.status === "confirmed").length}</p>
+            <p className="text-4xl font-medium">{bookings.filter(b => b.status === "confirmed").length}</p>
           </div>
         </div>
         
@@ -70,7 +140,7 @@ const Admin = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {dummyUsers.map(user => (
+                  {users.map(user => (
                     <TableRow key={user.id}>
                       <TableCell className="font-mono text-sm">{user.id}</TableCell>
                       <TableCell>
@@ -98,7 +168,13 @@ const Admin = () => {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm">Edit</Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                        >
+                          Edit
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -121,7 +197,7 @@ const Admin = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {dummyListings.map(listing => (
+                  {listings.map(listing => (
                     <TableRow key={listing.id}>
                       <TableCell className="font-mono text-sm">{listing.id}</TableCell>
                       <TableCell>
@@ -154,7 +230,13 @@ const Admin = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm">Edit</Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEditListing(listing)}
+                        >
+                          Edit
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -178,9 +260,9 @@ const Admin = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {dummyBookings.map(booking => {
-                    const listing = dummyListings.find(l => l.id === booking.listingId);
-                    const bookingUser = dummyUsers.find(u => u.id === booking.userId);
+                  {bookings.map(booking => {
+                    const listing = listings.find(l => l.id === booking.listingId);
+                    const bookingUser = users.find(u => u.id === booking.userId);
                     
                     return (
                       <TableRow key={booking.id}>
@@ -201,13 +283,21 @@ const Admin = () => {
                               ? "bg-green-100 text-green-800" 
                               : booking.status === "pending" 
                                 ? "bg-yellow-100 text-yellow-800" 
-                                : "bg-gray-100 text-gray-800"
+                                : booking.status === "cancelled"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-gray-100 text-gray-800"
                           }`}>
                             {booking.status}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm">View</Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleEditBooking(booking)}
+                          >
+                            Edit
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -217,6 +307,28 @@ const Admin = () => {
             </div>
           </TabsContent>
         </Tabs>
+        
+        {/* Dialogs */}
+        <UserEditDialog
+          user={selectedUser}
+          isOpen={dialogType === "user"}
+          onClose={handleCloseDialog}
+          onSave={handleSaveUser}
+        />
+        
+        <ListingEditDialog
+          listing={selectedListing}
+          isOpen={dialogType === "listing"}
+          onClose={handleCloseDialog}
+          onSave={handleSaveListing}
+        />
+        
+        <BookingEditDialog
+          booking={selectedBooking}
+          isOpen={dialogType === "booking"}
+          onClose={handleCloseDialog}
+          onSave={handleSaveBooking}
+        />
       </div>
     </div>
   );

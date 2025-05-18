@@ -45,3 +45,6 @@ export interface PaymentDetails {
   startDate?: Date;
   status: PaymentStatus;
 }
+
+// Adding a new type for dialogs
+export type DialogType = 'user' | 'listing' | 'booking' | null;
