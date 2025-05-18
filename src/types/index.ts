@@ -34,3 +34,14 @@ export interface Booking {
   totalPrice: number;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
 }
+
+export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+export interface PaymentDetails {
+  bookingId?: string;
+  listingId: string;
+  amount: number;
+  nights: number;
+  startDate?: Date;
+  status: PaymentStatus;
+}

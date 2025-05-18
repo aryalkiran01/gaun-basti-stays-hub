@@ -17,6 +17,8 @@ import Account from "./pages/Account";
 import Admin from "./pages/Admin";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import Payment from "./pages/Payment";
+import PaymentSuccess from "./pages/PaymentSuccess";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -44,6 +46,8 @@ const App = () => (
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
+                <Route path="/payment" element={<Payment />} />
+                <Route path="/payment-success" element={<PaymentSuccess />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>

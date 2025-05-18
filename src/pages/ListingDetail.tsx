@@ -1,5 +1,4 @@
-
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { dummyListings } from "@/lib/dummy-data";
@@ -8,6 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
+import { PaymentDetails } from "@/types";
 
 const ListingDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +16,7 @@ const ListingDetail = () => {
   const [nights, setNights] = useState(1);
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   if (!listing) {
     return (
@@ -35,6 +36,13 @@ const ListingDetail = () => {
     );
   }
 
+  const calculateTotalPrice = () => {
+    const basePrice = listing!.price * nights;
+    const cleaningFee = 25;
+    const serviceFee = 15;
+    return basePrice + cleaningFee + serviceFee;
+  };
+
   const handleBooking = () => {
     if (!user) {
       toast({
@@ -53,11 +61,18 @@ const ListingDetail = () => {
       });
       return;
     }
+
+    // Create payment details object
+    const paymentDetails: PaymentDetails = {
+      listingId: listing!.id,
+      amount: calculateTotalPrice(),
+      nights: nights,
+      startDate: selectedDate,
+      status: 'pending'
+    };
     
-    toast({
-      title: "Booking request submitted!",
-      description: `Your stay at ${listing.title} has been booked for ${format(selectedDate, "PPP")}`,
-    });
+    // Navigate to payment page with payment details
+    navigate("/payment", { state: { paymentDetails } });
   };
 
   return (
@@ -169,7 +184,7 @@ const ListingDetail = () => {
           <div>
             <div className="bg-white p-6 rounded-lg border shadow-sm sticky top-24">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold">${listing.price} <span className="text-sm font-normal">night</span></h3>
+                <h3 className="text-xl font-semibold">${listing!.price} <span className="text-sm font-normal">night</span></h3>
                 <div className="flex items-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -183,7 +198,7 @@ const ListingDetail = () => {
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span className="ml-1">{listing.rating}</span>
+                  <span className="ml-1">{listing!.rating}</span>
                 </div>
               </div>
 
@@ -226,8 +241,8 @@ const ListingDetail = () => {
 
               <div className="border-t pt-4 mb-4">
                 <div className="flex justify-between mb-2">
-                  <span>${listing.price} x {nights} nights</span>
-                  <span>${listing.price * nights}</span>
+                  <span>${listing!.price} x {nights} nights</span>
+                  <span>${listing!.price * nights}</span>
                 </div>
                 <div className="flex justify-between mb-2">
                   <span>Cleaning fee</span>
@@ -239,7 +254,7 @@ const ListingDetail = () => {
                 </div>
                 <div className="border-t pt-4 mt-4 flex justify-between font-bold">
                   <span>Total</span>
-                  <span>${listing.price * nights + 40}</span>
+                  <span>${calculateTotalPrice()}</span>
                 </div>
               </div>
 
