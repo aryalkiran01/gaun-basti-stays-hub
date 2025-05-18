@@ -1,0 +1,260 @@
+
+import { useParams, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { dummyListings } from "@/lib/dummy-data";
+import { useState } from "react";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/context/AuthContext";
+
+const ListingDetail = () => {
+  const { id } = useParams<{ id: string }>();
+  const listing = dummyListings.find(l => l.id === id);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [nights, setNights] = useState(1);
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  if (!listing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-3xl font-serif font-bold mb-4">Listing not found</h1>
+          <p className="text-lg text-muted-foreground mb-8">
+            The listing you're looking for doesn't exist or has been removed.
+          </p>
+          <Link to="/listings">
+            <Button className="bg-gaun-green hover:bg-gaun-light-green">
+              Browse all listings
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const handleBooking = () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to book this homestay",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!selectedDate) {
+      toast({
+        title: "Date required",
+        description: "Please select a check-in date",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    toast({
+      title: "Booking request submitted!",
+      description: `Your stay at ${listing.title} has been booked for ${format(selectedDate, "PPP")}`,
+    });
+  };
+
+  return (
+    <div className="min-h-screen py-12">
+      <div className="container">
+        {/* Listing Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-serif font-bold mb-2">{listing.title}</h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="w-4 h-4 text-yellow-500"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="ml-1 font-medium">{listing.rating}</span>
+              </div>
+              <span className="text-muted-foreground">·</span>
+              <span className="text-muted-foreground">{listing.reviewCount} reviews</span>
+              <span className="text-muted-foreground">·</span>
+              <span>{listing.location}</span>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                Share
+              </Button>
+              <Button variant="outline" size="sm">
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Images */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+          <div className="aspect-square overflow-hidden rounded-lg">
+            <img
+              src={listing.images[0]}
+              alt={listing.title}
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <div className="aspect-square overflow-hidden rounded-lg">
+            <img
+              src={listing.images[1] || listing.images[0]}
+              alt={listing.title}
+              className="h-full w-full object-cover"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          {/* Listing Details */}
+          <div className="md:col-span-2">
+            <div className="border-b pb-6 mb-6">
+              <h2 className="text-2xl font-serif font-semibold mb-2">About this place</h2>
+              <p className="text-muted-foreground">{listing.description}</p>
+            </div>
+
+            <div className="border-b pb-6 mb-6">
+              <h3 className="text-xl font-medium mb-4">What this place offers</h3>
+              <div className="grid grid-cols-2 gap-y-3">
+                {listing.amenities.map((amenity, index) => (
+                  <div key={index} className="flex items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 h-5 mr-2 text-gaun-green"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    <span>{amenity}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-xl font-medium mb-4">Details</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
+                <div className="p-4 bg-gaun-cream/50 rounded-md">
+                  <h4 className="font-medium">Bedrooms</h4>
+                  <p className="text-xl">{listing.bedrooms}</p>
+                </div>
+                <div className="p-4 bg-gaun-cream/50 rounded-md">
+                  <h4 className="font-medium">Bathrooms</h4>
+                  <p className="text-xl">{listing.bathrooms}</p>
+                </div>
+                <div className="p-4 bg-gaun-cream/50 rounded-md">
+                  <h4 className="font-medium">Max Guests</h4>
+                  <p className="text-xl">{listing.maxGuests}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Booking Card */}
+          <div>
+            <div className="bg-white p-6 rounded-lg border shadow-sm sticky top-24">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold">${listing.price} <span className="text-sm font-normal">night</span></h3>
+                <div className="flex items-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className="w-4 h-4 text-yellow-500"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span className="ml-1">{listing.rating}</span>
+                </div>
+              </div>
+
+              <div className="border rounded-md mb-4 overflow-hidden">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  className="border-0"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="nights" className="block text-sm font-medium mb-1">
+                  Number of nights
+                </label>
+                <div className="flex items-center">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="h-10 w-10"
+                    onClick={() => setNights(Math.max(1, nights - 1))}
+                    disabled={nights <= 1}
+                  >
+                    -
+                  </Button>
+                  <span className="flex-1 text-center">{nights}</span>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="h-10 w-10"
+                    onClick={() => setNights(nights + 1)}
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+
+              <div className="border-t pt-4 mb-4">
+                <div className="flex justify-between mb-2">
+                  <span>${listing.price} x {nights} nights</span>
+                  <span>${listing.price * nights}</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span>Cleaning fee</span>
+                  <span>$25</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span>Service fee</span>
+                  <span>$15</span>
+                </div>
+                <div className="border-t pt-4 mt-4 flex justify-between font-bold">
+                  <span>Total</span>
+                  <span>${listing.price * nights + 40}</span>
+                </div>
+              </div>
+
+              <Button
+                className="w-full bg-gaun-green hover:bg-gaun-light-green"
+                onClick={handleBooking}
+              >
+                Reserve
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ListingDetail;
