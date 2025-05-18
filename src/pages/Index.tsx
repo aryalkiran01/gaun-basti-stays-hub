@@ -4,7 +4,7 @@ import ListingCard from "@/components/ListingCard";
 import { dummyListings } from "@/lib/dummy-data";
 
 const Index = () => {
-  const featuredListings = dummyListings.slice(0, 3);
+  const featuredListings = dummyListings.slice(0, 4);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -36,9 +36,11 @@ const Index = () => {
       <section className="py-16 bg-white">
         <div className="container">
           <h2 className="text-3xl font-serif font-semibold mb-8">Featured Stays</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredListings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
+              <div key={listing.id} className="h-full">
+                <ListingCard key={listing.id} listing={listing} />
+              </div>
             ))}
           </div>
           <div className="mt-12 text-center">
