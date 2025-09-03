@@ -1,15 +1,15 @@
 
 import { createContext, useState, useContext, ReactNode, useEffect } from "react";
 import { User } from "../types";
-import { dummyUsers, PASSWORD } from "../lib/dummy-data";
+import { authAPI } from "../lib/api";
 import { useToast } from "@/components/ui/use-toast";
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => void;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  register: (name: string, email: string, password: string) => void;
+  register: (name: string, email: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,63 +20,108 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user is logged in from localStorage
-    const savedUser = localStorage.getItem("currentUser");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    // Check if user is logged in by fetching profile
+    const initializeAuth = async () => {
+      try {
+        const response = await authAPI.getProfile();
+        if (response.success) {
+          setUser(response.data.user);
+        }
+      } catch (error) {
+        // Token might be invalid or expired
+        authAPI.logout();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeAuth();
     }
-    setIsLoading(false);
   }, []);
 
-  const login = (email: string, password: string) => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      const foundUser = dummyUsers.find(u => u.email === email);
+    try {
+      const response = await authAPI.login(email, password);
       
-      if (foundUser && password === PASSWORD) {
-        setUser(foundUser);
-        localStorage.setItem("currentUser", JSON.stringify(foundUser));
+      if (response.success) {
+        setUser(response.data.user);
         toast({
           title: "Login successful",
-          description: `Welcome back, ${foundUser.name}!`,
+          description: `Welcome back, ${response.data.user.name}!`,
         });
       } else {
         toast({
           variant: "destructive",
           title: "Login failed",
-          description: "Invalid email or password. Try guest@example.com / password",
+          description: response.message || "Invalid email or password",
         });
       }
-      
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: error.message || "An error occurred during login",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const logout = () => {
+    authAPI.logout();
     setUser(null);
-    localStorage.removeItem("currentUser");
     toast({
       title: "Logged out",
       description: "You have been successfully logged out",
     });
   };
 
-  const register = (name: string, email: string, password: string) => {
+  const register = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      const existingUser = dummyUsers.find(u => u.email === email);
+    try {
+      const response = await authAPI.register(name, email, password);
       
-      if (existingUser) {
+      if (response.success) {
+        setUser(response.data.user);
+        toast({
+          title: "Registration successful",
+          description: `Welcome to Gaun Basti, ${response.data.user.name}!`,
+        });
+      } else {
         toast({
           variant: "destructive",
           title: "Registration failed",
-          description: "Email already in use. Please try another one.",
+          description: response.message || "Registration failed",
         });
-      } else if (password.length < 6) {
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Registration failed",
+        description: error.message || "An error occurred during registration",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, isLoading, login, logout, register }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
         toast({
           variant: "destructive",
           title: "Registration failed",
