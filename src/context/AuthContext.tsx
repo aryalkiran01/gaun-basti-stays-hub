@@ -1,4 +1,3 @@
-
 import { createContext, useState, useContext, ReactNode, useEffect } from "react";
 import { User } from "../types";
 import { authAPI } from "../lib/api";
@@ -36,7 +35,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     initializeAuth();
-    }
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -106,48 +104,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, register }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
-        toast({
-          variant: "destructive",
-          title: "Registration failed",
-          description: "Password must be at least 6 characters long.",
-        });
-      } else {
-        // In a real app, we would save this to a database
-        const newUser: User = {
-          id: `user-${Date.now()}`,
-          name,
-          email,
-          role: "guest",
-        };
-        
-        // Simulate saving and logging in the new user
-        setUser(newUser);
-        localStorage.setItem("currentUser", JSON.stringify(newUser));
-        
-        toast({
-          title: "Registration successful",
-          description: `Welcome to Gaun Basti, ${name}!`,
-        });
-      }
-      
-      setIsLoading(false);
-    }, 1000);
   };
 
   return (

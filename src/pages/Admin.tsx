@@ -3,7 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { dummyListings, dummyUsers, dummyBookings } from "@/lib/dummy-data";
+import { adminAPI } from "@/lib/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -16,6 +16,7 @@ import {
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 import { Booking, DialogType, Listing, User } from "@/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Import our new dialog components
 import UserEditDialog from "@/components/admin/UserEditDialog";
@@ -27,10 +28,12 @@ const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Add state for our data and edit dialogs
-  const [users, setUsers] = useState<User[]>(dummyUsers);
-  const [listings, setListings] = useState<Listing[]>(dummyListings);
-  const [bookings, setBookings] = useState<Booking[]>(dummyBookings);
+  // Add state for our data
+  const [users, setUsers] = useState<User[]>([]);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   
   // Selected item states
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -39,6 +42,50 @@ const Admin = () => {
   
   // Dialog open states
   const [dialogType, setDialogType] = useState<DialogType>(null);
+  
+  // Fetch admin data
+  useEffect(() => {
+    const fetchAdminData = async () => {
+      try {
+        setLoading(true);
+        
+        const [statsResponse, usersResponse, listingsResponse, bookingsResponse] = await Promise.all([
+          adminAPI.getDashboardStats(),
+          adminAPI.getAllUsers(),
+          adminAPI.getAllListings(),
+          adminAPI.getAllBookings()
+        ]);
+        
+        if (statsResponse.success) {
+          setDashboardStats(statsResponse.data.stats);
+        }
+        
+        if (usersResponse.success) {
+          setUsers(usersResponse.data.users);
+        }
+        
+        if (listingsResponse.success) {
+          setListings(listingsResponse.data.listings);
+        }
+        
+        if (bookingsResponse.success) {
+          setBookings(bookingsResponse.data.bookings);
+        }
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Error loading admin data",
+          description: error.message || "Failed to load admin dashboard data",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (user?.role === "admin") {
+      fetchAdminData();
+    }
+  }, [user, toast]);
   
   // Redirect if not admin
   useEffect(() => {
@@ -77,22 +124,43 @@ const Admin = () => {
   
   // Handle saving updated entities
   const handleSaveUser = (updatedUser: User) => {
-    const updatedUsers = users.map(u => 
-      u.id === updatedUser.id ? updatedUser : u
-    );
-    setUsers(updatedUsers);
-    handleCloseDialog();
+    adminAPI.updateUser(updatedUser.id, updatedUser)
+      .then(() => {
+        const updatedUsers = users.map(u => 
+          u.id === updatedUser.id ? updatedUser : u
+        );
+        setUsers(updatedUsers);
+        handleCloseDialog();
+      })
+      .catch((error) => {
+        toast({
+          variant: "destructive",
+          title: "Update failed",
+          description: error.message || "Failed to update user",
+        });
+      });
   };
   
   const handleSaveListing = (updatedListing: Listing) => {
-    const updatedListings = listings.map(l => 
-      l.id === updatedListing.id ? updatedListing : l
-    );
-    setListings(updatedListings);
-    handleCloseDialog();
+    adminAPI.verifyListing(updatedListing.id, true)
+      .then(() => {
+        const updatedListings = listings.map(l => 
+          l.id === updatedListing.id ? updatedListing : l
+        );
+        setListings(updatedListings);
+        handleCloseDialog();
+      })
+      .catch((error) => {
+        toast({
+          variant: "destructive",
+          title: "Update failed",
+          description: error.message || "Failed to update listing",
+        });
+      });
   };
   
   const handleSaveBooking = (updatedBooking: Booking) => {
+    // Note: This would need a specific admin booking update endpoint
     const updatedBookings = bookings.map(b => 
       b.id === updatedBooking.id ? updatedBooking : b
     );
@@ -105,20 +173,31 @@ const Admin = () => {
       <div className="container">
         <h1 className="text-3xl font-serif font-bold mb-6">Admin Dashboard</h1>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg border">
-            <h3 className="text-muted-foreground mb-1">Total Users</h3>
-            <p className="text-4xl font-medium">{users.length}</p>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="bg-white p-6 rounded-lg border">
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-16" />
+              </div>
+            ))}
           </div>
-          <div className="bg-white p-6 rounded-lg border">
-            <h3 className="text-muted-foreground mb-1">Total Listings</h3>
-            <p className="text-4xl font-medium">{listings.length}</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-lg border">
+              <h3 className="text-muted-foreground mb-1">Total Users</h3>
+              <p className="text-4xl font-medium">{dashboardStats?.totalUsers || users.length}</p>
+            </div>
+            <div className="bg-white p-6 rounded-lg border">
+              <h3 className="text-muted-foreground mb-1">Total Listings</h3>
+              <p className="text-4xl font-medium">{dashboardStats?.totalListings || listings.length}</p>
+            </div>
+            <div className="bg-white p-6 rounded-lg border">
+              <h3 className="text-muted-foreground mb-1">Active Bookings</h3>
+              <p className="text-4xl font-medium">{dashboardStats?.totalBookings || bookings.filter(b => b.status === "confirmed").length}</p>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-lg border">
-            <h3 className="text-muted-foreground mb-1">Active Bookings</h3>
-            <p className="text-4xl font-medium">{bookings.filter(b => b.status === "confirmed").length}</p>
-          </div>
-        </div>
+        )}
         
         <Tabs defaultValue="users" className="w-full">
           <TabsList>
@@ -129,57 +208,71 @@ const Admin = () => {
           
           <TabsContent value="users" className="mt-6">
             <div className="bg-white rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map(user => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-mono text-sm">{user.id}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {user.avatar && (
-                            <img
-                              src={user.avatar}
-                              alt={user.name}
-                              className="h-6 w-6 rounded-full object-cover"
-                            />
-                          )}
-                          {user.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          user.role === "admin" 
-                            ? "bg-red-100 text-red-800" 
-                            : user.role === "host" 
-                              ? "bg-blue-100 text-blue-800" 
-                              : "bg-gray-100 text-gray-800"
-                        }`}>
-                          {user.role}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleEditUser(user)}
-                        >
-                          Edit
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+              {loading ? (
+                <div className="p-6 space-y-4">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <div key={index} className="flex items-center space-x-4">
+                      <Skeleton className="h-6 w-16" />
+                      <Skeleton className="h-6 w-32" />
+                      <Skeleton className="h-6 w-48" />
+                      <Skeleton className="h-6 w-20" />
+                      <Skeleton className="h-6 w-16" />
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map(user => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-mono text-sm">{user.id}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {user.avatar && (
+                              <img
+                                src={user.avatar}
+                                alt={user.name}
+                                className="h-6 w-6 rounded-full object-cover"
+                              />
+                            )}
+                            {user.name}
+                          </div>
+                        </TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            user.role === "admin" 
+                              ? "bg-red-100 text-red-800" 
+                              : user.role === "host" 
+                                ? "bg-blue-100 text-blue-800" 
+                                : "bg-gray-100 text-gray-800"
+                          }`}>
+                            {user.role}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            Edit
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </div>
           </TabsContent>
           

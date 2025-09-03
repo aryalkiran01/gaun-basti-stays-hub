@@ -1,30 +1,59 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { dummyListings } from "@/lib/dummy-data";
+import { useListing } from "@/hooks/useListings";
+import { bookingsAPI } from "@/lib/api";
 import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { PaymentDetails } from "@/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ListingDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const listing = dummyListings.find(l => l.id === id);
+  const { listing, loading, error } = useListing(id!);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [nights, setNights] = useState(1);
+  const [isBooking, setIsBooking] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  if (!listing) {
+  if (loading) {
+    return (
+      <div className="min-h-screen py-12">
+        <div className="container">
+          <div className="mb-8">
+            <Skeleton className="h-8 w-1/2 mb-2" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+            <Skeleton className="aspect-square" />
+            <Skeleton className="aspect-square" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            <div className="md:col-span-2 space-y-6">
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+            <Skeleton className="h-96 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !listing) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-serif font-bold mb-4">Listing not found</h1>
+          <h1 className="text-3xl font-serif font-bold mb-4">
+            {error ? 'Error loading listing' : 'Listing not found'}
+          </h1>
           <p className="text-lg text-muted-foreground mb-8">
-            The listing you're looking for doesn't exist or has been removed.
+            {error || "The listing you're looking for doesn't exist or has been removed."}
           </p>
           <Link to="/listings">
             <Button className="bg-gaun-green hover:bg-gaun-light-green">
@@ -43,7 +72,7 @@ const ListingDetail = () => {
     return basePrice + cleaningFee + serviceFee;
   };
 
-  const handleBooking = () => {
+  const handleBooking = async () => {
     if (!user) {
       toast({
         title: "Authentication required",
@@ -62,17 +91,56 @@ const ListingDetail = () => {
       return;
     }
 
-    // Create payment details object
-    const paymentDetails: PaymentDetails = {
-      listingId: listing!.id,
-      amount: calculateTotalPrice(),
-      nights: nights,
-      startDate: selectedDate,
-      status: 'pending'
-    };
+    setIsBooking(true);
     
-    // Navigate to payment page with payment details
-    navigate("/payment", { state: { paymentDetails } });
+    try {
+      // Calculate end date
+      const endDate = new Date(selectedDate);
+      endDate.setDate(endDate.getDate() + nights);
+      
+      // Create booking via API
+      const bookingData = {
+        listing: listing.id,
+        startDate: selectedDate.toISOString(),
+        endDate: endDate.toISOString(),
+        guests: { adults: 1, children: 0 }, // Default for now
+        totalPrice: calculateTotalPrice()
+      };
+      
+      const response = await bookingsAPI.createBooking(bookingData);
+      
+      if (response.success) {
+        toast({
+          title: "Booking created",
+          description: "Your booking has been created successfully!",
+        });
+        
+        // Navigate to payment page with booking details
+        const paymentDetails: PaymentDetails = {
+          listingId: listing.id,
+          amount: calculateTotalPrice(),
+          nights: nights,
+          startDate: selectedDate,
+          status: 'pending'
+        };
+        
+        navigate("/payment", { state: { paymentDetails } });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Booking failed",
+          description: response.message || "Failed to create booking",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Booking failed",
+        description: error.message || "An error occurred while creating the booking",
+      });
+    } finally {
+      setIsBooking(false);
+    }
   };
 
   return (
@@ -261,8 +329,9 @@ const ListingDetail = () => {
               <Button
                 className="w-full bg-gaun-green hover:bg-gaun-light-green"
                 onClick={handleBooking}
+                disabled={isBooking}
               >
-                Reserve
+                {isBooking ? "Creating booking..." : "Reserve"}
               </Button>
             </div>
           </div>

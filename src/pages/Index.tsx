@@ -1,10 +1,11 @@
 
 import SearchForm from "@/components/SearchForm";
 import ListingCard from "@/components/ListingCard";
-import { dummyListings } from "@/lib/dummy-data";
+import { useFeaturedListings } from "@/hooks/useListings";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Index = () => {
-  const featuredListings = dummyListings.slice(0, 4);
+  const { listings: featuredListings, loading } = useFeaturedListings();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -36,13 +37,25 @@ const Index = () => {
       <section className="py-16 bg-white">
         <div className="container">
           <h2 className="text-3xl font-serif font-semibold mb-8">Featured Stays</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredListings.map((listing) => (
-              <div key={listing.id} className="h-full">
-                <ListingCard key={listing.id} listing={listing} />
-              </div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="space-y-3">
+                  <Skeleton className="h-48 w-full rounded-lg" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredListings.slice(0, 4).map((listing) => (
+                <div key={listing.id} className="h-full">
+                  <ListingCard listing={listing} />
+                </div>
+              ))}
+            </div>
+          )}
           <div className="mt-12 text-center">
             <a 
               href="/listings" 

@@ -13,26 +13,52 @@ export interface Listing {
   id: string;
   title: string;
   description: string;
-  location: string;
+  location: string | {
+    address: string;
+    city: string;
+    state?: string;
+    country: string;
+  };
   price: number;
   rating: number;
   reviewCount: number;
-  images: string[];
+  images: string[] | Array<{
+    url: string;
+    publicId?: string;
+    caption?: string;
+  }>;
   amenities: string[];
   maxGuests: number;
   bedrooms: number;
   bathrooms: number;
   hostId: string;
+  host?: User;
+  category?: string;
+  isActive?: boolean;
+  isVerified?: boolean;
+  averageRating?: number;
 }
 
 export interface Booking {
   id: string;
-  listingId: string;
-  userId: string;
-  startDate: Date;
-  endDate: Date;
+  listing: string | Listing;
+  guest: string | User;
+  host: string | User;
+  startDate: Date | string;
+  endDate: Date | string;
   totalPrice: number;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
+  guests?: {
+    adults: number;
+    children: number;
+  };
+  priceBreakdown?: {
+    basePrice: number;
+    cleaningFee: number;
+    serviceFee: number;
+    taxes: number;
+  };
 }
 
 export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed';

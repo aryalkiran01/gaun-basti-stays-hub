@@ -3,13 +3,16 @@ import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { dummyBookings, dummyListings } from "@/lib/dummy-data";
+import { useUserBookings } from "@/hooks/useBookings";
+import { useListing } from "@/hooks/useListings";
 import { format } from "date-fns";
 import { useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Account = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { bookings, loading: bookingsLoading, error: bookingsError } = useUserBookings();
   
   // Redirect if not logged in
   useEffect(() => {
@@ -21,9 +24,6 @@ const Account = () => {
   if (!user) {
     return null; // Prevent rendering until redirect happens
   }
-  
-  // Filter bookings for this user
-  const userBookings = dummyBookings.filter(booking => booking.userId === user.id);
   
   return (
     <div className="min-h-screen py-12">
@@ -87,32 +87,54 @@ const Account = () => {
               <TabsContent value="bookings" className="mt-6">
                 <h2 className="text-xl font-medium mb-4">Upcoming Stays</h2>
                 
-                {userBookings.length > 0 ? (
+                {bookingsLoading ? (
                   <div className="space-y-4">
-                    {userBookings.map((booking) => {
-                      const listing = dummyListings.find(l => l.id === booking.listingId);
-                      if (!listing) return null;
-                      
+                    {Array.from({ length: 3 }).map((_, index) => (
+                      <div key={index} className="flex flex-col md:flex-row bg-white border rounded-lg overflow-hidden">
+                        <Skeleton className="md:w-1/4 h-48 md:h-32" />
+                        <div className="p-4 md:p-6 flex-1 space-y-2">
+                          <Skeleton className="h-6 w-3/4" />
+                          <Skeleton className="h-4 w-1/2" />
+                          <Skeleton className="h-4 w-full" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : bookingsError ? (
+                  <div className="text-center py-12 border rounded-lg">
+                    <p className="text-red-600 mb-4">Error loading bookings: {bookingsError}</p>
+                    <Button variant="outline">Try again</Button>
+                  </div>
+                ) : bookings.length > 0 ? (
+                  <div className="space-y-4">
+                    {bookings.map((booking) => {
                       return (
                         <div key={booking.id} className="flex flex-col md:flex-row bg-white border rounded-lg overflow-hidden">
                           <div className="md:w-1/4">
                             <img 
-                              src={listing.images[0]} 
-                              alt={listing.title}
+                              src={booking.listing?.images?.[0] || "https://images.unsplash.com/photo-1587061949409-02df41d5e562"} 
+                              alt={booking.listing?.title || "Homestay"}
                               className="h-48 md:h-full w-full object-cover"
                             />
                           </div>
                           <div className="p-4 md:p-6 flex-1">
                             <div className="flex justify-between items-start">
                               <div>
-                                <h3 className="text-lg font-medium mb-1">{listing.title}</h3>
-                                <p className="text-muted-foreground">{listing.location}</p>
+                                <h3 className="text-lg font-medium mb-1">{booking.listing?.title || "Homestay"}</h3>
+                                <p className="text-muted-foreground">{booking.listing?.location || "Nepal"}</p>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-yellow-500">
-                                  <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-                                </svg>
-                                <span>{listing.rating}</span>
+                              <div className="flex items-center">
+                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                  booking.status === "confirmed" 
+                                    ? "bg-green-100 text-green-800" 
+                                    : booking.status === "pending" 
+                                      ? "bg-yellow-100 text-yellow-800" 
+                                      : booking.status === "cancelled"
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-gray-100 text-gray-800"
+                                }`}>
+                                  {booking.status}
+                                </span>
                               </div>
                             </div>
                             
@@ -121,7 +143,7 @@ const Account = () => {
                                 {format(booking.startDate, "MMM d")} – {format(booking.endDate, "MMM d, yyyy")}
                               </div>
                               <div className="bg-gaun-cream/60 px-3 py-1 rounded-full text-sm">
-                                {(booking.endDate.getTime() - booking.startDate.getTime()) / (1000 * 60 * 60 * 24)} nights
+                                {Math.ceil((new Date(booking.endDate).getTime() - new Date(booking.startDate).getTime()) / (1000 * 60 * 60 * 24))} nights
                               </div>
                             </div>
                             
