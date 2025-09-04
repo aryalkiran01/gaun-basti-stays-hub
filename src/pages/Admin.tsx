@@ -53,7 +53,7 @@ const Admin = () => {
           adminAPI.getDashboardStats(),
           adminAPI.getAllUsers(),
           adminAPI.getAllListings(),
-          adminAPI.getAllBookings()
+          adminAPI.getAllBookings({})
         ]);
         
         if (statsResponse.success) {
@@ -354,17 +354,21 @@ const Admin = () => {
                 </TableHeader>
                 <TableBody>
                   {bookings.map(booking => {
-                    const listing = listings.find(l => l.id === booking.listingId);
-                    const bookingUser = users.find(u => u.id === booking.userId);
+                    const listing = typeof booking.listing === 'string' 
+                      ? listings.find(l => l.id === booking.listing)
+                      : booking.listing;
+                    const bookingUser = typeof booking.guest === 'string'
+                      ? users.find(u => u.id === booking.guest)
+                      : booking.guest;
                     
                     return (
                       <TableRow key={booking.id}>
                         <TableCell className="font-mono text-sm">{booking.id}</TableCell>
                         <TableCell>
-                          {listing?.title || "Unknown Listing"}
+                          {typeof listing === 'object' ? listing?.title : "Unknown Listing"}
                         </TableCell>
                         <TableCell>
-                          {bookingUser?.name || "Unknown User"}
+                          {typeof bookingUser === 'object' ? bookingUser?.name : "Unknown User"}
                         </TableCell>
                         <TableCell>
                           {format(booking.startDate, "MMM d")} – {format(booking.endDate, "MMM d, yyyy")}

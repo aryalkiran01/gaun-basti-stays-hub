@@ -139,8 +139,9 @@ export const dummyListings: Listing[] = [
 export const dummyBookings: Booking[] = [
   {
     id: "1",
-    listingId: "1",
-    userId: "1",
+    listing: dummyListings[0],
+    guest: dummyUsers[0],
+    host: dummyUsers[1],
     startDate: new Date("2023-11-10"),
     endDate: new Date("2023-11-15"),
     totalPrice: 425,
@@ -148,8 +149,9 @@ export const dummyBookings: Booking[] = [
   },
   {
     id: "2",
-    listingId: "3",
-    userId: "1",
+    listing: dummyListings[2],
+    guest: dummyUsers[0],
+    host: dummyUsers[1],
     startDate: new Date("2023-12-05"),
     endDate: new Date("2023-12-10"),
     totalPrice: 225,

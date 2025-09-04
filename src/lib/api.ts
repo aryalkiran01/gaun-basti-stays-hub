@@ -1,6 +1,6 @@
 // API configuration and helper functions for frontend-backend integration
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:3000/api';
 
 // Get auth token from localStorage
 const getAuthToken = (): string | null => {
@@ -258,6 +258,11 @@ export const adminAPI = {
   getAllUsers: async (params: any = {}) => {
     const queryString = new URLSearchParams(params).toString();
     return await apiRequest(`/admin/users${queryString ? `?${queryString}` : ''}`);
+  },
+
+  getAllBookings: async (params: any = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return await apiRequest(`/admin/bookings${queryString ? `?${queryString}` : ''}`);
   },
 
   updateUser: async (id: string, userData: any) => {

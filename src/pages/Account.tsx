@@ -108,20 +108,25 @@ const Account = () => {
                 ) : bookings.length > 0 ? (
                   <div className="space-y-4">
                     {bookings.map((booking) => {
+                      // Handle both string and object types for listing
+                      const listingData = typeof booking.listing === 'string' 
+                        ? dummyListings.find(l => l.id === booking.listing)
+                        : booking.listing;
+                        
                       return (
                         <div key={booking.id} className="flex flex-col md:flex-row bg-white border rounded-lg overflow-hidden">
                           <div className="md:w-1/4">
                             <img 
-                              src={booking.listing?.images?.[0] || "https://images.unsplash.com/photo-1587061949409-02df41d5e562"} 
-                              alt={booking.listing?.title || "Homestay"}
+                              src={listingData?.images?.[0] || "https://images.unsplash.com/photo-1587061949409-02df41d5e562"} 
+                              alt={listingData?.title || "Homestay"}
                               className="h-48 md:h-full w-full object-cover"
                             />
                           </div>
                           <div className="p-4 md:p-6 flex-1">
                             <div className="flex justify-between items-start">
                               <div>
-                                <h3 className="text-lg font-medium mb-1">{booking.listing?.title || "Homestay"}</h3>
-                                <p className="text-muted-foreground">{booking.listing?.location || "Nepal"}</p>
+                                <h3 className="text-lg font-medium mb-1">{listingData?.title || "Homestay"}</h3>
+                                <p className="text-muted-foreground">{listingData?.location || "Nepal"}</p>
                               </div>
                               <div className="flex items-center">
                                 <span className={`px-2 py-1 rounded-full text-xs ${

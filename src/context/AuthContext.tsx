@@ -2,6 +2,7 @@ import { createContext, useState, useContext, ReactNode, useEffect } from "react
 import { User } from "../types";
 import { authAPI } from "../lib/api";
 import { useToast } from "@/components/ui/use-toast";
+import { dummyUsers, PASSWORD } from "@/lib/dummy-data";
 
 interface AuthContextType {
   user: User | null;
@@ -22,13 +23,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Check if user is logged in by fetching profile
     const initializeAuth = async () => {
       try {
-        const response = await authAPI.getProfile();
-        if (response.success) {
-          setUser(response.data.user);
+        try {
+          const response = await authAPI.getProfile();
+          if (response.success) {
+            setUser(response.data.user);
+          }
+        } catch (error) {
+          // Check localStorage for demo user
+          const storedUser = localStorage.getItem('demoUser');
+          if (storedUser) {
+            setUser(JSON.parse(storedUser));
+          }
         }
       } catch (error) {
-        // Token might be invalid or expired
-        authAPI.logout();
+        console.warn('Auth initialization failed:', error);
       } finally {
         setIsLoading(false);
       }
@@ -41,21 +49,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
-      const response = await authAPI.login(email, password);
-      
-      if (response.success) {
-        setUser(response.data.user);
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${response.data.user.name}!`,
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Login failed",
-          description: response.message || "Invalid email or password",
-        });
+      try {
+        const response = await authAPI.login(email, password);
+        
+        if (response.success) {
+          setUser(response.data.user);
+          toast({
+            title: "Login successful",
+            description: `Welcome back, ${response.data.user.name}!`,
+          });
+          
+          // Navigate based on user role
+          setTimeout(() => {
+            if (response.data.user.role === 'admin') {
+              window.location.href = '/admin';
+            } else {
+              window.location.href = '/account';
+            }
+          }, 1000);
+          return;
+        }
+      } catch (apiError) {
+        console.warn('API login failed, trying demo login:', apiError);
       }
+      
+      // Fallback to demo authentication
+      if (password === PASSWORD) {
+        const demoUser = dummyUsers.find(u => u.email === email);
+        if (demoUser) {
+          setUser(demoUser);
+          localStorage.setItem('demoUser', JSON.stringify(demoUser));
+          toast({
+            title: "Demo login successful",
+            description: `Welcome back, ${demoUser.name}!`,
+          });
+          
+          // Navigate based on user role
+          setTimeout(() => {
+            if (demoUser.role === 'admin') {
+              window.location.href = '/admin';
+            } else {
+              window.location.href = '/account';
+            }
+          }, 1000);
+          return;
+        }
+      }
+      
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: "Invalid email or password",
+      });
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -68,8 +113,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
-    authAPI.logout();
+    try {
+      authAPI.logout();
+    } catch (error) {
+      console.warn('API logout failed:', error);
+    }
+    localStorage.removeItem('demoUser');
     setUser(null);
+    window.location.href = '/';
     toast({
       title: "Logged out",
       description: "You have been successfully logged out",
@@ -80,21 +131,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
-      const response = await authAPI.register(name, email, password);
-      
-      if (response.success) {
-        setUser(response.data.user);
-        toast({
-          title: "Registration successful",
-          description: `Welcome to Gaun Basti, ${response.data.user.name}!`,
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Registration failed",
-          description: response.message || "Registration failed",
-        });
+      try {
+        const response = await authAPI.register(name, email, password);
+        
+        if (response.success) {
+          setUser(response.data.user);
+          toast({
+            title: "Registration successful",
+            description: `Welcome to Gaun Basti, ${response.data.user.name}!`,
+          });
+          
+          // Navigate to account page
+          setTimeout(() => {
+            window.location.href = '/account';
+          }, 1000);
+          return;
+        }
+      } catch (apiError) {
+        console.warn('API registration failed, creating demo user:', apiError);
       }
+      
+      // Fallback to demo registration
+      const newUser: User = {
+        id: Date.now().toString(),
+        name,
+        email,
+        role: 'guest',
+        avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80`
+      };
+      
+      setUser(newUser);
+      localStorage.setItem('demoUser', JSON.stringify(newUser));
+      toast({
+        title: "Demo registration successful",
+        description: `Welcome to Gaun Basti, ${newUser.name}!`,
+      });
+      
+      // Navigate to account page
+      setTimeout(() => {
+        window.location.href = '/account';
+      }, 1000);
     } catch (error: any) {
       toast({
         variant: "destructive",

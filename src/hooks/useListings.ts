@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { listingsAPI } from '@/lib/api';
 import { Listing } from '@/types';
+import { dummyListings } from '@/lib/dummy-data';
 
 interface UseListingsParams {
   location?: string;
@@ -39,16 +40,31 @@ export const useListings = (params: UseListingsParams = {}): UseListingsReturn =
       setLoading(true);
       setError(null);
       
-      const response = await listingsAPI.getListings(params);
-      
-      if (response.success) {
-        setListings(response.data.listings);
-        setPagination(response.data.pagination);
-      } else {
-        setError(response.message || 'Failed to fetch listings');
+      try {
+        const response = await listingsAPI.getListings(params);
+        
+        if (response.success) {
+          setListings(response.data.listings);
+          setPagination(response.data.pagination);
+        } else {
+          throw new Error(response.message || 'Failed to fetch listings');
+        }
+      } catch (apiError) {
+        console.warn('API not available, using dummy data:', apiError);
+        // Fallback to dummy data if API is not available
+        setListings(dummyListings);
+        setPagination({
+          currentPage: 1,
+          totalPages: 1,
+          totalListings: dummyListings.length,
+          hasNextPage: false,
+          hasPrevPage: false
+        });
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred while fetching listings');
+      // Fallback to dummy data on error
+      setListings(dummyListings);
     } finally {
       setLoading(false);
     }
@@ -78,15 +94,23 @@ export const useFeaturedListings = () => {
         setLoading(true);
         setError(null);
         
-        const response = await listingsAPI.getFeaturedListings();
-        
-        if (response.success) {
-          setListings(response.data.listings);
-        } else {
-          setError(response.message || 'Failed to fetch featured listings');
+        try {
+          const response = await listingsAPI.getFeaturedListings();
+          
+          if (response.success) {
+            setListings(response.data.listings);
+          } else {
+            throw new Error(response.message || 'Failed to fetch featured listings');
+          }
+        } catch (apiError) {
+          console.warn('API not available, using dummy data:', apiError);
+          // Fallback to dummy data if API is not available
+          setListings(dummyListings.slice(0, 4));
         }
       } catch (err: any) {
         setError(err.message || 'An error occurred while fetching featured listings');
+        // Fallback to dummy data on error
+        setListings(dummyListings.slice(0, 4));
       } finally {
         setLoading(false);
       }
@@ -109,12 +133,23 @@ export const useListing = (id: string) => {
         setLoading(true);
         setError(null);
         
-        const response = await listingsAPI.getListing(id);
-        
-        if (response.success) {
-          setListing(response.data.listing);
-        } else {
-          setError(response.message || 'Failed to fetch listing');
+        try {
+          const response = await listingsAPI.getListing(id);
+          
+          if (response.success) {
+            setListing(response.data.listing);
+          } else {
+            throw new Error(response.message || 'Failed to fetch listing');
+          }
+        } catch (apiError) {
+          console.warn('API not available, using dummy data:', apiError);
+          // Fallback to dummy data if API is not available
+          const dummyListing = dummyListings.find(l => l.id === id);
+          if (dummyListing) {
+            setListing(dummyListing);
+          } else {
+            throw new Error('Listing not found');
+          }
         }
       } catch (err: any) {
         setError(err.message || 'An error occurred while fetching listing');

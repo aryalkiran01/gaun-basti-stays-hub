@@ -36,7 +36,7 @@ cp .env.example .env
 
 Edit `.env` with your configuration:
 ```env
-PORT=5000
+PORT=3000
 NODE_ENV=development
 MONGODB_URI=mongodb://localhost:27017/gaunbasti
 JWT_SECRET=your_super_secret_jwt_key_here
@@ -61,7 +61,7 @@ npm run seed
 npm run dev
 ```
 
-The API will be available at `http://localhost:5000`
+The API will be available at `http://localhost:3000`
 
 ## API Endpoints
 
@@ -129,7 +129,7 @@ After running the seed script, you can use these demo accounts:
 
 ### API Base URL
 ```javascript
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:3000/api';
 ```
 
 ### Authentication Headers

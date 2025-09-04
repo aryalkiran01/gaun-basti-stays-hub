@@ -607,6 +607,7 @@ const deleteListing = async (req, res) => {
 
 module.exports = {
   getDashboardStats,
+  getAllBookings,
   getAllUsers,
   updateUser,
   getAllListings,

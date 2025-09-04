@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getDashboardStats,
+  getAllBookings,
   getAllUsers,
   updateUser,
   getAllListings,
@@ -32,6 +33,7 @@ router.patch('/users/:id/reactivate', validateObjectId('id'), reactivateUser);
 
 // Listing management
 router.get('/listings', getAllListings);
+router.get('/bookings', getAllBookings);
 router.patch('/listings/:id/verify', validateObjectId('id'), verifyListing);
 router.delete('/listings/:id', validateObjectId('id'), deleteListing);
 
